@@ -1,7 +1,9 @@
 const router = require('express').Router();
 const multer = require('multer');
 const uuid = require('uuid/v4');
+const spawn = require('child_process').spawn;
 const logger = require('./libs/logger');
+const fs = require('fs');
 
 const storage = multer.diskStorage({
     destination: (req, file, callback) => {
@@ -12,12 +14,29 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({storage});
+const upload = multer({storage}).single('file');
 
-const convertDocument = (req, res, next) => {
+const createJob = (file, res) => {
+    const childProcess = spawn('unoconv', [
+        '--stdout',
+        '--no-launch',
+        file
+    ]);
 
+    childProcess.on('exit', code => {
+        logger.info('Unoconv spawn child exited with code', code);
+        fs.unlink(file);
+    });
+
+    childProcess.stdout.pipe(res);
 };
 
-router.post('/', upload.single('file'), convertDocument());
+const convertDocument = (req, res) => {
+    const {mimetype, path} = req.file;
+
+    return createJob(path, res);
+};
+
+router.post('/', upload, convertDocument);
 
 module.exports = router;
