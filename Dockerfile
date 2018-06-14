@@ -6,7 +6,7 @@ WORKDIR /app
 COPY . /app
 RUN npm --loglevel warn install --no-optional
 
-USER nodejs
+USER 999
 
 EXPOSE 8080
 
