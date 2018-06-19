@@ -4,7 +4,6 @@ RUN yum install -y unoconv make gcc*
 
 WORKDIR /app
 COPY . /app
-COPY ./__tests__ /app/__tests__
 RUN npm --loglevel warn install -g node-gyp jest
 RUN npm --loglevel warn install --no-optional
 
