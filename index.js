@@ -1,8 +1,9 @@
 const express = require('express');
 const logger = require('./libs/logger');
 const apiRouter = require('./routes');
+const config = require('./config');
 
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || config.PORT;
 
 const app = express();
 
