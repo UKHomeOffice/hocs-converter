@@ -16,14 +16,12 @@
     "mime-db": "^1.34.0",
     "mmmagic": "^0.5.0",
     "multer": "^1.3.0",
-    "read-chunk": "^2.1.0",
     "uuid": "^3.2.1",
     "winston": "^2.4.2"
   },
   "devDependencies": {
     "jest": "^23.1.0",
     "nodemon": "^1.17.5",
-    "rest": "^2.0.0",
     "supertest": "^3.1.0"
   }
 }
