@@ -31,6 +31,7 @@ pipeline:
       - docker tag hocs-converter quay.io/ukhomeofficedigital/hocs-converter:build-$${DRONE_BUILD_NUMBER}
       - docker tag hocs-converter quay.io/ukhomeofficedigital/hocs-converter:latest
       - docker push quay.io/ukhomeofficedigital/hocs-converter:build-$${DRONE_BUILD_NUMBER}
+      - docker push quay.io/ukhomeofficedigital/hocs-converter:latest
     when:
       branch: master
       event: push
