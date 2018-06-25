@@ -8,7 +8,7 @@ const port = process.env.PORT || config.PORT;
 const app = express();
 
 app.get('/health', (req, res) => {
-   return res.sendStatus(200);
+    return res.sendStatus(200);
 });
 
 app.use('/api', apiRouter);

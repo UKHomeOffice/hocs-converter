@@ -1,3 +1,4 @@
+/* global describe test */
 const request = require('supertest');
 const errors = require('../libs/errors');
 

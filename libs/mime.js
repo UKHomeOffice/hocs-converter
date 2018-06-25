@@ -21,7 +21,7 @@ const supported_mime_types = supported_types.reduce((reducer, extension) => {
 const detectFile = (file, callback) => {
     magic.detectFile(file, (err, result) => {
         callback(err, result);
-    })
+    });
 };
 
 module.exports = {
