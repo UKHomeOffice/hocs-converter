@@ -8,6 +8,7 @@ const path = require('path');
 const errors = require('./libs/errors');
 const {supported_types, supported_mime_types, detectFile} = require('./libs/mime');
 const config = require('./config');
+const request = require('request');
 
 const converter_timeout = process.env.CONVERTER_TIMEOUT || config.CONVERTER_TIMEOUT;
 const max_size = process.env.MAX_FILESIZE || config.MAX_FILESIZE;
@@ -40,15 +41,16 @@ const deleteFile = (req, callback) => {
 };
 
 const processDocument = (req, res, next) => {
-    req.file ? req.correlationId = req.get('X-Correlation-ID') || req.file.originalname : 'NO FILE';
+    if (req.file) {
+        req.correlationId = req.get('X-Correlation-ID') || req.file.originalname;
+    } else {
+        logger.warn(errors.NO_FILE);
+        return res.status(400).send(errors.NO_FILE);
+    }
     next();
 };
 
 const validateDocument = (req, res, next) => {
-    if (!req.file) {
-        logger.warn(errors.NO_FILE);
-        return res.status(400).send(errors.NO_FILE);
-    }
 
     const {path: file, originalname, size} = req.file;
 
@@ -113,6 +115,35 @@ const convertDocument = (req, res) => {
     return createJob(req, res, process.hrtime());
 };
 
-router.post('/', upload, processDocument, validateDocument, convertDocument);
+const malwareScanDocument = (req, res, next) => {
+    if (!process.env.CLAMAV_HOST) {
+        logger.warn('CLAMAV_HOST not configured -- skipping virus scan!');
+        return next();
+    }
+    // Borrowed from https://github.com/UKHomeOffice/file-vault/blob/3069b0b/controllers/file.js#L64 (Crown Copyright)
+    const suspectFile = {
+        name: req.file.originalname,
+        file: fs.createReadStream(req.file.path)
+    };
+
+    request.post({
+        uri: process.env.CLAMAV_HOST + '/scan',
+        formData: suspectFile,
+        timeout: 30 * 1000
+    }, (err, httpResponse, body) => {
+        if (err || httpResponse.statusCode !== 200) {
+            logger.error(`Problem sending data to malware checker - ${err ? err : httpResponse.statusCode}`);
+            return res.status(500).send(`${errors.MALWARE_CHECK_ERROR}`);
+        } else if (body.indexOf('false') !== -1) {
+            logger.info('Malware found - ' + body);
+            return res.send(`${errors.MALWARE_FOUND}`);
+        }
+        logger.info('Malware check passed - ' + body);
+        return next();
+    });
+};
+
+
+router.post('/', upload, processDocument, malwareScanDocument, validateDocument, convertDocument);
 
 module.exports = router;
