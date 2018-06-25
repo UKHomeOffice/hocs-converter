@@ -1,5 +1,12 @@
 pipeline:
 
+  lint:
+    image: widerin/alpine-eslint
+    commands:
+      - eslint .
+    when:
+      event: push
+
   build-docker-image:
     image: docker:17.09.1
     environment:
