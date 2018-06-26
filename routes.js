@@ -45,7 +45,9 @@ const processDocument = (req, res, next) => {
         req.correlationId = req.get('X-Correlation-ID') || req.file.originalname;
     } else {
         logger.warn(errors.NO_FILE);
-        return res.status(400).send(errors.NO_FILE);
+        res.status(400);
+        res.state = (errors.NO_FILE);
+        next('route');
     }
     next();
 };
@@ -61,19 +63,25 @@ const validateDocument = (req, res, next) => {
             if (size > max_size) {
                 logger.warn(`${req.correlationId} - ${errors.FILE_TOO_LARGE}`);
                 return deleteFile(req, () => {
-                    res.status(400).send(`${errors.FILE_TOO_LARGE} ${size}`);
+                    res.status(400);
+                    res.state = errors.FILE_TOO_LARGE; // ${size}
+                    return next('route');
                 });
             }
             if (!supported_types.includes(extension)) {
                 logger.warn(`${req.correlationId} - ${errors.UNSUPPORTED_TYPE}`);
                 return deleteFile(req, () => {
-                    res.status(400).send(`${errors.UNSUPPORTED_TYPE} ${extension}`);
+                    res.status(400);
+                    res.state = errors.UNSUPPORTED_TYPE; // ${extension}
+                    next('route');
                 });
             }
             if (!supported_mime_types.includes(result)) {
                 logger.warn(`${req.correlationId} - ${errors.UNSUPPORTED_TYPE}`);
                 return deleteFile(req, () => {
-                    res.status(400).send(`${errors.UNSUPPORTED_TYPE} ${result}`);
+                    res.status(400);
+                    res.state = errors.UNSUPPORTED_TYPE; // ${result}
+                    next('route');
                 });
             }
             next();
@@ -81,12 +89,14 @@ const validateDocument = (req, res, next) => {
     } catch (e) {
         logger.error(`${req.correlationId} - ${errors.FAILED_TO_VALIDATE} ${e}`);
         deleteFile(req, () => {
-            return res.status(500).send(`${errors.FAILED_TO_VALIDATE} - ${e}`);
+            res.status(500);
+            res.state = errors.FAILED_TO_VALIDATE; // ${e}
+            next('route');
         });
     }
 };
 
-const createJob = (req, res, processStartTime) => {
+const createJob = (req, res, next, processStartTime) => {
     logger.info(`${req.correlationId} - unoconv child process starting`);
     const childProcess = spawn('unoconv', [
         '--stdout',
@@ -103,16 +113,22 @@ const createJob = (req, res, processStartTime) => {
 
     childProcess.on('error', err => {
         logger.error(`${req.correlationId} - unoconv child process failed: ${err}`);
-        res.status(500).send(err);
+        res.state = errors.CONVERSION_ERROR;
+        res.status(500);
+        next('route');
     });
 
-    res.set('Content-Type', 'application/pdf');
-    childProcess.stdout.pipe(res);
+    if (process.env.OUTPUT_PDF) {
+        res.set('Content-Type', 'application/pdf');
+        childProcess.stdout.pipe(res);
+    }
+    res.state = errors.CONVERSION_OK;
+    
 };
 
-const convertDocument = (req, res) => {
+const convertDocument = (req, res, next) => {
     req.setTimeout(converter_timeout);
-    return createJob(req, res, process.hrtime());
+    return createJob(req, res, next, process.hrtime());
 };
 
 const malwareScanDocument = (req, res, next) => {
@@ -133,17 +149,34 @@ const malwareScanDocument = (req, res, next) => {
     }, (err, httpResponse, body) => {
         if (err || httpResponse.statusCode !== 200) {
             logger.error(`Problem sending data to malware checker - ${err ? err : httpResponse.statusCode}`);
-            return res.status(500).send(`${errors.MALWARE_CHECK_ERROR}`);
+            res.status(500);
+            res.state = errors.MALWARE_CHECK_ERROR;
+            return next('route');
         } else if (body.indexOf('false') !== -1) {
             logger.info('Malware found - ' + body);
-            return res.send(`${errors.MALWARE_FOUND}`);
+            res.state = errors.MALWARE_FOUND;
+            return next('route');
         }
         logger.info('Malware check passed - ' + body);
         return next();
     });
 };
 
+const outputJson = (req, res) => {
+    let output = {
+        caseUUID: null,
+        documentUUID: req.file ? req.file.filename : null,
+        documentDisplayName: req.file ? req.file.originalname : null,
+        documentType: req.file ? req.file.mimetype : null,
+        s3OrigLink: null,
+        s3PdfLink: null,
+        status: res.state ? res.state : null
+    };
+    return res.json(output);
+};
 
 router.post('/', upload, processDocument, malwareScanDocument, validateDocument, convertDocument);
+
+router.post('/', outputJson);
 
 module.exports = router;
