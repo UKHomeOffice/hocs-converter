@@ -4,5 +4,7 @@ module.exports = {
     NO_FILE: 'Unable to process request: no file',
     FAILED_TO_VALIDATE: 'Failed to validate file',
     MALWARE_CHECK_ERROR: 'Virus scan errored',
-    MALWARE_FOUND: 'Virus scan failed'
+    MALWARE_FOUND: 'Virus scan failed',
+    CONVERSION_ERROR: 'Problem converting file',
+    CONVERSION_OK: 'Converted'
 };
