@@ -26,3 +26,4 @@ MAX_FILESIZE: maximum filesize in bytes
 SUPPORTED_TYPES: csv whitelist of filetypes e.g. 'doc, docx...'
 CONVERTER_TIMEOUT: request timeout in ms
 ```
+.
