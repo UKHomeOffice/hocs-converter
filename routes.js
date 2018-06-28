@@ -47,7 +47,7 @@ const processDocument = (req, res, next) => {
         logger.warn(errors.NO_FILE);
         res.status(400);
         res.state = (errors.NO_FILE);
-        next('route');
+        return next('route');
     }
     next();
 };
@@ -124,7 +124,7 @@ const createJob = (req, res, next, processStartTime) => {
         childProcess.stdout.pipe(res);
     }
     res.state = errors.CONVERSION_OK;
-    
+
 };
 
 const convertDocument = (req, res, next) => {

@@ -1,10 +1,10 @@
 module.exports = {
-    UNSUPPORTED_TYPE: 'Unable to process request: unsupported filetype',
-    FILE_TOO_LARGE: 'Unable to process request: file too large',
-    NO_FILE: 'Unable to process request: no file',
-    FAILED_TO_VALIDATE: 'Failed to validate file',
-    MALWARE_CHECK_ERROR: 'Virus scan errored',
-    MALWARE_FOUND: 'Virus scan failed',
-    CONVERSION_ERROR: 'Problem converting file',
-    CONVERSION_OK: 'Converted'
+    UNSUPPORTED_TYPE: 'UNSUPPORTED_TYPE',
+    FILE_TOO_LARGE: 'FILE_TOO_LARGE',
+    NO_FILE: 'NO_FILE',
+    FAILED_TO_VALIDATE: 'FAILED_TO_VALIDATE',
+    MALWARE_CHECK_ERROR: 'MALWARE_CHECK_ERROR',
+    MALWARE_FOUND: 'MALWARE_FOUND',
+    CONVERSION_ERROR: 'CONVERSION_ERROR',
+    CONVERSION_OK: 'CONVERSION_OK'
 };
