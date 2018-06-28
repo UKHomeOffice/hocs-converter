@@ -108,6 +108,7 @@ const createJob = (req, res, next, processStartTime) => {
         logger.info(`${req.correlationId} - unoconv child process exited with code: ${code}`);
         deleteFile(req, () => {
             logger.debug(`${req.correlationId} - execution time ${process.hrtime(processStartTime)}ms`);
+            if (!process.env.OUTPUT_PDF) return next('route');
         });
     });
 
