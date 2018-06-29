@@ -1,6 +1,6 @@
 /* global describe test expect */
 const request = require('supertest');
-const errors = require('../libs/errors');
+const errors = require('../libs/status');
 
 describe('POST /api', () => {
 

@@ -1,7 +1,7 @@
 const mimeDb = require('mime-db');
 const mmm = require('mmmagic');
 const magic = new mmm.Magic(mmm.MAGIC_MIME_TYPE);
-const config = require('../config');
+const {SUPPORTED_TYPES} = require('../config');
 
 const mimeTypes = Object.keys(mimeDb).reduce((reducer, key) => {
     const type = mimeDb[key];
@@ -11,7 +11,7 @@ const mimeTypes = Object.keys(mimeDb).reduce((reducer, key) => {
     return reducer;
 }, {});
 
-const supported_types = (process.env.SUPPORTED_TYPES || config.SUPPORTED_TYPES).split(',');
+const supported_types = SUPPORTED_TYPES.split(',');
 
 const supported_mime_types = supported_types.reduce((reducer, extension) => {
     reducer.push(mimeTypes[extension]);

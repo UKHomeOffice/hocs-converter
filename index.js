@@ -1,9 +1,11 @@
 const express = require('express');
 const logger = require('./libs/logger');
-const apiRouter = require('./routes');
-const config = require('./config');
+const {PORT, AWS: {SQS: {INSECURE_QUEUE}}} = require('./config');
+const {sqsClient} = require('./libs/aws');
+const SQSListener = require('./libs/sqsListener');
+const {handler} = require('./libs/convert');
 
-const port = process.env.PORT || config.PORT;
+const port = PORT;
 
 const app = express();
 
@@ -11,7 +13,14 @@ app.get('/health', (req, res) => {
     return res.sendStatus(200);
 });
 
-app.use('/api', apiRouter);
+const sqsListener = new SQSListener({
+    sqs: sqsClient,
+    queueUrl: INSECURE_QUEUE,
+    messageHandler: handler,
+    logger
+});
+
+sqsListener.start();
 
 app.listen(port, (err) => {
     if (err) {
