@@ -48,6 +48,7 @@ services:
     environment:
       HOSTNAME_EXTERNAL: localstack
       DEFAULT_REGION: eu-west-2
+      SERVICES: sqs,s3
 
   converter:
     build:

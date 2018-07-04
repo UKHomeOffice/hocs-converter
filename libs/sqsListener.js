@@ -7,15 +7,16 @@ class SQSListener extends EventEmitter {
             this.messageHandler = options.messageHandler;
             this.sqs = options.sqs;
             this.queueUrl = options.queueUrl;
-            this.maxNumberOfMessages = options.maxNumberOfMessages || 1;
+            this.maxNumberOfMessages = options.maxNumberOfMessages || 10;
             this.waitTimeSeconds = options.waitTimeSeconds || 20;
             this.logger = options.logger;
             this.isRunning = false;
+            this.isProcessing = false;
 
             this.start = this.start.bind(this);
             this.stop = this.stop.bind(this);
             this.listen = this.listen.bind(this);
-            this.processMessage = this.processMessage.bind(this);
+            this.processMessage = this.processMessages.bind(this);
         } else {
             throw new Error('Failed to create listener, no configuration provided')
         }
@@ -35,47 +36,59 @@ class SQSListener extends EventEmitter {
     }
 
     listen() {
+        this.logger.debug(`Listening...`);
         if (this.isRunning) {
-            this.sqs.receiveMessage({
-                QueueUrl: this.queueUrl,
-                MaxNumberOfMessages: this.maxNumberOfMessages,
-                WaitTimeSeconds: this.waitTimeSeconds
-            }, this.processMessage)
+            if (!this.isProcessing) {
+                this.sqs.receiveMessage({
+                    QueueUrl: this.queueUrl,
+                    MaxNumberOfMessages: this.maxNumberOfMessages,
+                    WaitTimeSeconds: this.waitTimeSeconds
+                }, (err, res) => {
+                    if (err) {
+                        if (err.message.includes('AWS.SimpleQueueService.NonExistentQueue')) {
+                            this.logger.error('Queue does no exist, stopping SQS Listener');
+                        }
+                        return this.stop();
+                    }
+                    if (res && res.Messages && res.Messages.length > 0) {
+                        this.processMessages(res.Messages).then(() => {
+                            this.isProcessing = false;
+                            return this.listen();
+                        });
+                    } else {
+                        if (res && !res.Messages) {
+                            this.logger.debug('No messages in queue');
+                            return this.listen();
+                        }
+                    }
+                })
+            }
         }
     }
 
-    processMessage(err, res) {
-        if (err) {
-            if (err.message.includes('AWS.SimpleQueueService.NonExistentQueue')) {
-                this.logger.error('Queue does no exist, stopping SQS Listener');
-                return this.stop();
-            }
-            return this.listen();
-        }
-
-        if (res && res.Messages && res.Messages.length > 0) {
-            this.logger.debug(`${res.Messages.length} message(s) retrieved from queue`);
-            res.Messages.map(message => {
-                this.messageHandler(message, () => {
-                    const params = {
-                        QueueUrl: this.queueUrl,
-                        ReceiptHandle: message.ReceiptHandle
-                    };
-                    this.sqs.deleteMessage(params, (err, data) => {
-                        if (err) {
-                            this.logger.error(`Failed to remove original request from SQS: ${err.stack}`);
-                        } else {
-                            this.logger.debug('Original message removed from the queue');
-                        }
+    processMessages(messages) {
+        return new Promise((resolve, reject) => {
+            this.logger.debug(`${messages.length} message(s) retrieved from queue`);
+            this.isProcessing = true;
+            this.messageHandler(messages)
+                .then(() => {
+                    this.logger.debug(`Deleting original messages from inbound queue`);
+                    messages.map(message => {
+                        const params = {
+                            QueueUrl: this.queueUrl,
+                            ReceiptHandle: message.ReceiptHandle
+                        };
+                        this.sqs.deleteMessage(params, (err, data) => {
+                            if (err) {
+                                this.logger.error(`Failed to remove original request from SQS: ${err.stack}`);
+                            } else {
+                                this.logger.debug(`Original message removed from the queue`);
+                            }
+                        });
                     });
-                    return this.listen();
+                    resolve();
                 });
-            });
-
-        } else if (res && !res.Messages) {
-            this.logger.debug('No messages in queue');
-            return this.listen();
-        }
+        });
     }
 }
 

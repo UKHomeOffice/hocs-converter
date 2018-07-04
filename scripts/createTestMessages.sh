@@ -7,7 +7,7 @@ aws --endpoint-url=http://localhost:4572 s3 cp ../__tests__/resources/sample.doc
 aws --endpoint-url=http://localhost:4572 s3 cp ../__tests__/resources/sample.html s3://hocs-untrusted-bucket/
 aws --endpoint-url=http://localhost:4572 s3 cp ../__tests__/resources/sample.test s3://hocs-untrusted-bucket/
 
-sleep 10
+sleep 2
 
 aws --endpoint-url=http://localhost:4576 sqs send-message --queue-url http://localhost:4576/queue/hocs-documents-insecure \
  --message-body '{"caseUUID":"1234","documentDisplayName":"sample.txt","documentUUID":"txt.dummyId","s3UntrustedUrl":"sample.txt"}'
