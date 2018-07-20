@@ -28,4 +28,3 @@ CONVERTER_TIMEOUT: request timeout in ms
 CLAMAV_HOST: host of clamd instance (if omitted, disables virus scanning)
 CLAMAV_POST: port of clamd instance (default 3310)
 ```
-.
